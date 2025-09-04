@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prisma - Rede Transparente</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ECF0F1;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    .title {
+      font-size: 32px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #7f8c8d;
+    }
+    .input, .chatInput {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid #BDC3C7;
+    }
+    .identityBar {
+      padding: 10px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .sectionTitle {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+    .card {
+      background-color: #FFF;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid #DDD;
+    }
+    .visibilityRow {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .visibilityButton {
+      padding: 8px;
+      border: 1px solid #BDC3C7;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .visibilitySelected {
+      background-color: #3498DB;
+      color: white;
+      border-color: #3498DB;
+    }
+    .chatBubble {
+      background-color: #3498DB;
+      color: white;
+      padding: 10px;
+      border-radius: 15px;
+      margin-bottom: 5px;
+      display: inline-block;
+    }
+    .chatInputContainer {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .chatButton {
+      background-color: #2ECC71;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    button {
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background-color: #2980B9;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    const identities = [
+      { id: '1', name: 'Pessoal', color: '#2ECC71' },
+      { id: '2', name: 'Profissional', color: '#3498DB' },
+      { id: '3', name: 'Anônimo', color: '#9B59B6' }
+    ];
+
+    const visibilityOptions = ['público', 'privado', 'efêmero'];
+
+    function App() {
+      const [loggedIn, setLoggedIn] = React.useState(false);
+      const [username, setUsername] = React.useState('');
+      const [currentIdentity, setCurrentIdentity] = React.useState(identities[0]);
+      const [feeds, setFeeds] = React.useState({ '1': [], '2': [], '3': [] });
+      const [newPost, setNewPost] = React.useState('');
+      const [selectedVisibility, setSelectedVisibility] = React.useState('público');
+      const [messages, setMessages] = React.useState([]);
+      const [chatInput, setChatInput] = React.useState('');
+
+      const switchIdentity = () => {
+        const index = identities.findIndex(i => i.id === currentIdentity.id);
+        const next = (index + 1) % identities.length;
+        setCurrentIdentity(identities[next]);
+      };
+
+      const addPost = () => {
+        if (newPost.trim() === '') return;
+        const post = {
+          id: Date.now().toString(),
+          author: currentIdentity.name,
+          content: newPost,
+          visibility: selectedVisibility
+        };
+        setFeeds(prev => ({
+          ...prev,
+          [currentIdentity.id]: [post, ...prev[currentIdentity.id]]
+        }));
+
+        if (selectedVisibility === 'efêmero') {
+          setTimeout(() => {
+            setFeeds(prev => ({
+              ...prev,
+              [currentIdentity.id]: prev[currentIdentity.id].filter(p => p.id !== post.id)
+            }));
+          }, 10000);
+        }
+        setNewPost('');
+      };
+
+      const sendMessage = () => {
+        if (chatInput.trim() === '') return;
+        const msg = { id: Date.now().toString(), text: chatInput };
+        setMessages(prev => [...prev, msg]);
+        setChatInput('');
+        setTimeout(() => {
+          setMessages(prev => prev.filter(m => m.id !== msg.id));
+        }, 5000);
+      };
+
+      if (!loggedIn) {
+        return (
+          <div className="container">
+            <h1 className="title">🌐 Prisma</h1>
+            <p className="subtitle">Rede Transparente e Segura</p>
+            <input
+              className="input"
+              placeholder="Digite seu nome"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
+            <button onClick={() => username.trim() !== '' && setLoggedIn(true)}>Entrar</button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="container">
+          <div className="identityBar" style={{ backgroundColor: currentIdentity.color }}>
+            <span><strong>Identidade:</strong> {currentIdentity.name}</span>
+            <button onClick={switchIdentity}>Trocar</button>
+          </div>
+
+          <div>
+            <h2 className="sectionTitle">📌 Feed ({currentIdentity.name})</h2>
+            <input
+              className="input"
+              placeholder="Escreva algo..."
+              value={newPost}
+              onChange={e => setNewPost(e.target.value)}
+            />
+
+            <div className="visibilityRow">
+              {visibilityOptions.map(option => (
+                <div
+                  key={option}
+                  className={`visibilityButton ${selectedVisibility === option ? 'visibilitySelected' : ''}`}
+                  onClick={() => setSelectedVisibility(option)}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+
+            <button onClick={addPost}>Postar</button>
+
+            {feeds[currentIdentity.id].map(post => (
+              <div key={post.id} className="card">
+                <div><strong>{post.author}</strong> ({post.visibility})</div>
+                <div>{post.content}</div>
+              </div>
+            ))}
